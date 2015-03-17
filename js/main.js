@@ -13,7 +13,7 @@ window.onload = function()
     // Create image layer class.
     const ImageBlockLayer = (function() {
             // Constructor
-            function ImageBlockLayer(bitmap, sizeX, sizeY, spriteCellContainer)
+            function ImageBlockLayer(stage, bitmap, sizeX, sizeY, spriteCellContainer)
             {
                 this.bitmap = bitmap;
                 this.visibleMatrix = new Array(sizeY);
@@ -37,6 +37,12 @@ window.onload = function()
             };
 
             var new_prototype = ImageBlockLayer.prototype;
+            new_prototype.destructor = function() {
+                this.spriteCellContainer.removeAllChildren();
+                this.spriteCellContainer = null;
+                this.stage.removeChild(this.spriteCellContainer);
+            }
+
             new_prototype.invisibleCellAt = function(x, y) {
                 this.visibleMatrix[x][y] = false;
                 this.spriteCellMatrix[x][y].alpha = 0.0;
@@ -178,7 +184,8 @@ window.onload = function()
                                     self.velocity.y *= -1;
                                     imageBlockLayer.invisibleCellAt(i, j);
                                     if (imageBlockLayer.isInvisibleAllCell() == true) {
-                                        // TODO:
+                                        imageBlockLayer.destructor();
+                                        imageBlockLayers.shift();
                                     }
                                     return;
                                 }
@@ -213,7 +220,8 @@ window.onload = function()
     var imageBlockLayers = [];
     var imageLoadQueue = new createjs.LoadQueue(false);
     var manifest = [
-        {'src' : 'img/rin.jpg', 'id' : 'image1'}
+        {'src' : 'img/rin2.jpg', 'id' : 'layer2'},
+        {'src' : 'img/rin.jpg', 'id' : 'layer1'}
     ];
     imageLoadQueue.loadManifest(manifest, true);
     var onFileLoad = function(event)
@@ -247,18 +255,20 @@ window.onload = function()
         }
         var spriteSheet = spBuilder.build();
 
+        // Insert container at bottom of stage.
         var container = stage.addChild(new createjs.Container());
-        stage.swapChildrenAt(1, stage.getChildIndex(container));  // FIXME
+        for (var i = stage.numChildren; 0 < i; --i) {
+            stage.swapChildrenAt(i, i - 1);
+        }
 
         // Create each sprite
         for (var i = 0; i < (BLOCK_WIDTH_DEVIDE_NUM * BLOCK_HEIGHT_DEVIDE_NUM); i++) {
             var sprite = new createjs.Sprite(spriteSheet);
             sprite.gotoAndStop(i);
-            // sprite.alpha = 0;
             container.addChild(sprite);
         }
 
-        imageBlockLayers.push(new ImageBlockLayer(bitmap, BLOCK_WIDTH_DEVIDE_NUM, BLOCK_HEIGHT_DEVIDE_NUM, container));
+        imageBlockLayers.push(new ImageBlockLayer(stage, bitmap, BLOCK_WIDTH_DEVIDE_NUM, BLOCK_HEIGHT_DEVIDE_NUM, container));
     }
     imageLoadQueue.addEventListener('fileload', onFileLoad);
 
