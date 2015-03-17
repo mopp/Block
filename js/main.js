@@ -7,9 +7,10 @@ window.onload = function()
     const BLOCK_WIDTH_DEVIDE_NUM  = 20;
     const BLOCK_HEIGHT_DEVIDE_NUM = 10;
     const BLOCK_AREA_BEGIN        = new Victor(0, 0);
-    const BLOCK_AREA_END          = new Victor(stage.canvas.width, stage.canvas.height * 0.6);
+    const BLOCK_AREA_END          = new Victor(stage.canvas.width, stage.canvas.height);
     const BLOCK_AREA_SIZE         = BLOCK_AREA_END.subtract(BLOCK_AREA_BEGIN);
     const BAR_SIZE                = new Victor(80, 10);
+    console.log("Image area size", BLOCK_AREA_SIZE.toString());
 
     // Set rendering configurations.
     createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
@@ -196,11 +197,9 @@ window.onload = function()
                 self.syncPosition();
                 self.stage.update();
 
-                if (BLOCK_AREA_END.y < y) {
-                    // Check Bar.
-                    if (self.isCollisionBar() == true) {
-                        self.velocity.y *= -1;
-                    }
+                // Check Bar.
+                if (self.isCollisionBar() == true) {
+                    self.velocity.y *= -1;
                     return;
                 }
 
@@ -296,11 +295,13 @@ window.onload = function()
         oldStageX = x;
     };
     window.addEventListener("mousemove", onMovingMouse);
+
     var onMouseDown = function()
     {
         isMoveBar = true;
     }
     stage.on("stagemousedown", onMouseDown);
+
     var onMouseUp = function()
     {
         isMoveBar = false;
@@ -316,7 +317,7 @@ window.onload = function()
     // Early index is top on the canvas.
     var imageBlockLayers = [];
     var imageLoadQueue = new createjs.LoadQueue(false);
-    var manifest = [ {'src' : '../../../Photos/431x500x9fd78229e1c319bfd05aeb91.jpg', 'id' : 'layer2'}, {'src' : 'img/rin.jpg', 'id' : 'layer1'} ];
+    var manifest = ['img/1.png', 'img/2.png'];
     imageLoadQueue.loadManifest(manifest, true);
     var onFileLoad = function(event)
     {
