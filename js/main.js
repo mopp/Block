@@ -11,95 +11,109 @@ window.onload = function()
     const BLOCK_AREA_SIZE         = BLOCK_AREA_END.subtract(BLOCK_AREA_BEGIN);
     const BAR_SIZE                = new Victor(80, 10);
 
+    // Set rendering configurations.
+    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
+    createjs.Ticker.setFPS(60);
+
     // Create image layer class.
     const ImageBlockLayer = (function() {
-            // Constructor
-            function ImageBlockLayer(stage, bitmap, sizeX, sizeY, spriteCellContainer)
-            {
-                this.stage = stage;
-                this.bitmap = bitmap;
-                this.visibleMatrix = new Array(sizeY);
-                for (var i = 0; i < sizeY; ++i) {
-                    this.visibleMatrix[i] = new Array(sizeX);
-                    for (var j = 0; j < sizeX; ++j) {
-                        this.visibleMatrix[i][j] = true;
-                    }
+        // Constructor
+        function ImageBlockLayer(stage, bitmap, sizeX, sizeY, spriteCellContainer)
+        {
+            this.stage = stage;
+            this.bitmap = bitmap;
+            this.visibleMatrix = new Array(sizeY);
+            for (var i = 0; i < sizeY; ++i) {
+                this.visibleMatrix[i] = new Array(sizeX);
+                for (var j = 0; j < sizeX; ++j) {
+                    this.visibleMatrix[i][j] = true;
                 }
-                this.visibleCellCounter = sizeX * sizeY;
+            }
+            this.visibleCellCounter = sizeX * sizeY;
 
-                this.spriteCellMatrix = new Array(sizeY);
-                for (var i = 0; i < sizeY; ++i) {
-                    this.spriteCellMatrix[i] = new Array(sizeX);
-                    for (var j = 0; j < sizeX; ++j) {
-                        this.spriteCellMatrix[i][j] = spriteCellContainer.getChildAt((i * sizeX) + j);
-                    }
+            this.spriteCellMatrix = new Array(sizeY);
+            for (var i = 0; i < sizeY; ++i) {
+                this.spriteCellMatrix[i] = new Array(sizeX);
+                for (var j = 0; j < sizeX; ++j) {
+                    this.spriteCellMatrix[i][j] = spriteCellContainer.getChildAt((i * sizeX) + j);
                 }
-                this.cellSize = new Victor(sizeX, sizeY);
-                this.spriteCellContainer = spriteCellContainer;
-            };
-
-            var new_prototype = ImageBlockLayer.prototype;
-            new_prototype.destructor = function() {
-                this.spriteCellContainer.removeAllChildren();
-                this.spriteCellContainer = null;
-                this.stage.removeChild(this.spriteCellContainer);
             }
+            this.cellSize = new Victor(sizeX, sizeY);
+            this.spriteCellContainer = spriteCellContainer;
+        };
 
-            new_prototype.invisibleCellAt = function(x, y) {
-                this.visibleMatrix[x][y] = false;
-                this.spriteCellMatrix[x][y].alpha = 0.0;
-                --this.visibleCellCounter;
-            }
+        var new_prototype = ImageBlockLayer.prototype;
+        new_prototype.destructor = function()
+        {
+            this.spriteCellContainer.removeAllChildren();
+            this.spriteCellContainer = null;
+            this.stage.removeChild(this.spriteCellContainer);
+        }
 
-            new_prototype.isInvisibleAllCell = function() {
-                return (this.visibleCellCounter == 0) ? (true) : (false);
-            }
+        new_prototype.invisibleCellAt = function(x, y)
+        {
+            this.visibleMatrix[x][y] = false;
+            this.spriteCellMatrix[x][y].alpha = 0.0;
+            --this.visibleCellCounter;
+        }
 
-            return ImageBlockLayer ;
+        new_prototype.isInvisibleAllCell = function()
+        {
+            return (this.visibleCellCounter == 0) ? (true) : (false);
+        }
+
+        return ImageBlockLayer;
     })();
 
     // Create ball class by inherit from Shape.
     const Ball = (function() {
-            const BALL_GRAVITY = 0.1;
+        const BALL_GRAVITY = 0.1;
 
-            // Constructor
-            function Ball(stage, x, y, radius, initVelocity, color)
+        // Constructor
+        function Ball(stage, x, y, radius, initVelocity, color)
+        {
+            this.Shape_constructor();
+            this.x = x;
+            this.y = y;
+            this.position = new Victor(x, y);
+            this.velocity = new Victor(0, initVelocity);
+            this.stage = stage;
+            this.radius = radius;
+            this.color = color;
+            this.STAGE_WIDTH = stage.canvas.width;
+            this.STAGE_HEIGHT = stage.canvas.height;
+
+            this.graphics.beginFill(createjs.Graphics.getRGB(color)).drawCircle(0, 0, this.radius);
+        }
+        var new_prototype = createjs.extend(Ball, createjs.Shape);
+
+        new_prototype.isCollisionRectangle = function(ballPosition, r, rectanglePosition, rectangleSize)
+        {
+            // Check ball includes rectangle corner.
+            var checker1 = function(t, cs)
             {
-                this.Shape_constructor();
-                this.x            = x;
-                this.y            = y;
-                this.position     = new Victor(x, y);
-                this.velocity     = new Victor(0, initVelocity);
-                this.stage        = stage;
-                this.radius       = radius;
-                this.color        = color;
-                this.STAGE_WIDTH  = stage.canvas.width;
-                this.STAGE_HEIGHT = stage.canvas.height;
-
-                this.graphics.beginFill(createjs.Graphics.getRGB(color)).drawCircle(0, 0, this.radius);
-            }
-            var new_prototype = createjs.extend(Ball, createjs.Shape);
-
-            new_prototype.collisionRectangle = function(displayObject, positionX, positionY, sizeX, sizeY)
-            {
-                var rectangleSize = new Victor(sizeX, sizeY);
-                var rectanglePos  = new Victor(positionX, positionY);
-                var r = this.radius;
-                var pt = displayObject.globalToLocal(this.position.x, this.position.y);
-                var ballPos = new Victor(pt.x, pt.y);
-
-                // Check ball includes rectangle corner.
-                var checker1 = function(v1, v2) {
-                    return ((v1.distance(v2)) < (r * r)) ? (true) : (false);
+                var rSq = r * r;
+                for (var i = 0; i < cs.length; ++i) {
+                    var dx = cs[i].x - t.x;
+                    var dy = cs[i].y - t.y;
+                    if ((dx * dx + dy * dy) < rSq) {
+                        return true;
+                    }
                 }
 
-                // Check ball includes each rectangle line.
-                var checker2 = function(p, q, m) {
+                return false;
+            }
+
+            // Check ball includes each rectangle line.
+            var checker2 = function(cs, m)
+            {
+                var f = function(p, q)
+                {
                     var pq = q.clone().subtract(p);
                     var pm = m.clone().subtract(p);
                     var inner = pq.clone().dot(pm);
-                    var pqd2 = pq.clone().lengthSq();
-                    var pmd2 = pm.clone().lengthSq();
+                    var pqd2 = pq.lengthSq();
+                    var pmd2 = pm.lengthSq();
                     var k = inner / pqd2;
 
                     if ((k < 0) || (1 < k)) {
@@ -108,126 +122,138 @@ window.onload = function()
 
                     var phd2 = inner * k;
                     var d2 = pmd2 - phd2;
-
                     return (d2 < (r * r)) ? (true) : (false);
                 }
 
-                var checker3 = function(cs, m) {
-                    var theta = [, ];
-                    for (var i = 0; i < 2; ++i) {
-                        var pp = cs[i + 1].clone().subtract(cs[i * 3]);
-                        var pm = m.clone().subtract(cs[i * 3]);
-                        var inner = pp.clone().dot(pm);
-                        var outer = pp.clone().cross(pm);
-                        theta[i] = Math.atan2(outer, inner) * (180 / Math.PI);
-                    }
+                return (f(cs[0], cs[1], m) || f(cs[0], cs[2], m) || f(cs[1], cs[3], m) || f(cs[2], cs[3], m));
+            }
 
-                    return ((0 <= theta[0]) && (theta[0] <= 90) && (0 <= theta[1]) && (theta[1] <= 90)) ? (true) : (false)
+            // Check rectangle includes ball.
+            var checker3 = function(cs, m)
+            {
+                var theta = [ , ];
+                for (var i = 0; i < 2; ++i) {
+                    var pp = cs[i + 1].clone().subtract(cs[i * 3]);
+                    var pm = m.clone().subtract(cs[i * 3]);
+                    var inner = pp.clone().dot(pm);
+                    var outer = pp.clone().cross(pm);
+                    theta[i] = Math.atan2(outer, inner) * (180 / Math.PI);
                 }
 
-                var c1 = rectanglePos.clone();
-                var c2 = rectanglePos.clone().addX(rectangleSize);
-                var c3 = rectanglePos.clone().addY(rectangleSize);
-                var c4 = rectanglePos.clone().add(rectangleSize);
-
-                return (checker3([c1, c2, c3, c4], ballPos));
-
-                return (
-                    checker2(c1, c2, ballPos) ||
-                    checker2(c1, c3, ballPos) ||
-                    checker2(c2, c4, ballPos) ||
-                    checker2(c3, c4, ballPos)
-                );
-
-                return (
-                    checker1(ballPos, c1) ||
-                    checker1(ballPos, c2) ||
-                    checker1(ballPos, c3) ||
-                    checker1(ballPos, c4)
-                );
+                return ((0 <= theta[0]) && (theta[0] <= 90) && (0 <= theta[1]) && (theta[1] <= 90)) ? (true) : (false)
             }
 
-            new_prototype.onTick = function(event)
-            {
-                var self = this;
-                return (function(event) {
-                        // Move
-                        self.position.add(self.velocity);
+            var corners = [
+                rectanglePosition.clone(),
+                rectanglePosition.clone().addX(rectangleSize),
+                rectanglePosition.clone().addY(rectangleSize),
+                rectanglePosition.clone().add(rectangleSize),
+            ];
 
-                        // Check stage boundary.
-                        var x = self.position.x;
-                        var y = self.position.y;
-                        if (self.STAGE_WIDTH < x) {
-                            self.velocity.x *= -1;
-                            self.position.x = (self.STAGE_WIDTH - self.radius);
-                        } else if ((x - this.radius) <= 0) {
-                            self.velocity.x *= -1;
-                            self.position.x = self.radius;
+            return (checker3(corners, ballPosition) || checker2(corners, ballPosition) || checker1(ballPosition, corners));
+        }
+
+        new_prototype.isCollisionBlock = function(blockContainer, positionX, positionY, sizeX, sizeY)
+        {
+            var pt = blockContainer.globalToLocal(this.position.x, this.position.y);
+            return this.isCollisionRectangle(new Victor(pt.x, pt.y), this.radius, new Victor(positionX, positionY), new Victor(sizeX, sizeY));
+        }
+
+        new_prototype.isCollisionBar = function()
+        {
+            return this.isCollisionRectangle(this.position, this.radius, new Victor(bar.x, bar.y), BAR_SIZE);
+        }
+
+        new_prototype.onTick = function(event)
+        {
+            var self = this;
+            return (function(event) {
+                // Move
+                self.position.add(self.velocity);
+
+                // Check stage boundary.
+                var x = self.position.x;
+                var y = self.position.y;
+                if (self.STAGE_WIDTH < x) {
+                    self.velocity.x *= -1;
+                    self.position.x = (self.STAGE_WIDTH - self.radius);
+                } else if ((x - this.radius) <= 0) {
+                    self.velocity.x *= -1;
+                    self.position.x = self.radius;
+                }
+
+                if ((self.STAGE_HEIGHT - self.radius) <= y) {
+                    self.velocity.y *= -1;
+                    self.position.y = (self.STAGE_HEIGHT - self.radius);
+                } else if ((y - self.radius) <= 0) {
+                    self.velocity.y *= -1;
+                    self.position.y = self.radius;
+                }
+
+                // self.velocity.y += BALL_GRAVITY;
+
+                // redraw.
+                self.syncPosition();
+                self.stage.update();
+
+                if (BLOCK_AREA_END.y < y) {
+                    // Check Bar.
+                    if (self.isCollisionBar() == true) {
+                        self.velocity.y *= -1;
+                    }
+                    return;
+                }
+
+                // Check Block
+                x = self.position.x;
+                y = self.position.y;
+                var imageBlockLayer = imageBlockLayers[0];
+                var cellMatrix = imageBlockLayer.spriteCellMatrix;
+                var visibleMatrix = imageBlockLayer.visibleMatrix;
+                for (var i = 0; i < cellMatrix.length; i++) {
+                    for (var j = 0; j < cellMatrix[i].length; ++j) {
+                        if (visibleMatrix[i][j] == false) {
+                            continue;
                         }
 
-                        if ((self.STAGE_HEIGHT - self.radius) <= y) {
+                        var cell = cellMatrix[i][j];
+                        var bounds = cell.getBounds();
+                        if (self.isCollisionBlock(imageBlockLayer.spriteCellContainer, bounds.x, bounds.y, bounds.width, bounds.height)) {
                             self.velocity.y *= -1;
-                            self.position.y = (self.STAGE_HEIGHT - self.radius);
-                        } else if ((y - self.radius) <= 0) {
-                            self.velocity.y *= -1;
-                            self.position.y = self.radius;
-                        }
 
-                        // self.velocity.y += BALL_GRAVITY;
+                            imageBlockLayer.invisibleCellAt(i, j);
 
-                        // redraw.
-                        self.syncPosition();
-                        self.stage.update();
+                            if (imageBlockLayer.isInvisibleAllCell() == true) {
+                                imageBlockLayer.destructor();
+                                imageBlockLayers.shift();
+                            }
 
-                        if (BLOCK_AREA_END.y < y) {
                             return;
                         }
+                    }
+                }
+            });
+        }
 
-                        x = self.position.x;
-                        y = self.position.y;
-                        var imageBlockLayer = imageBlockLayers[0];
-                        var cellMatrix = imageBlockLayer.spriteCellMatrix;
-                        var visibleMatrix = imageBlockLayer.visibleMatrix;
-                        for (var i = 0; i < cellMatrix.length; i++) {
-                            for (var j = 0; j < cellMatrix[i].length; ++j) {
-                                if (visibleMatrix[i][j] == false) {
-                                    continue;
-                                }
-                                var cell = cellMatrix[i][j];
-                                var bounds = cell.getBounds();
-                                if (self.collisionRectangle(imageBlockLayer.spriteCellContainer, bounds.x, bounds.y, bounds.width, bounds.height)) {
-                                    self.velocity.y *= -1;
-                                    imageBlockLayer.invisibleCellAt(i, j);
-                                    if (imageBlockLayer.isInvisibleAllCell() == true) {
-                                        imageBlockLayer.destructor();
-                                        imageBlockLayers.shift();
-                                    }
-                                    return;
-                                }
-                            }
-                        }
-                });
-            }
+        new_prototype.syncPosition = function()
+        {
+            this.x = this.position.x;
+            this.y = this.position.y;
+        }
 
-            new_prototype.syncPosition = function()
-            {
-                this.x = this.position.x;
-                this.y = this.position.y;
-            }
+        new_prototype.turnOnTick = function()
+        {
+            this.tickHandler = this.onTick();
+            createjs.Ticker.addEventListener("tick", this.tickHandler);
+        }
 
-            new_prototype.turnOnTick = function()
-            {
-                this.tickHandler = this.onTick();
-                createjs.Ticker.addEventListener("tick", this.tickHandler);
-            }
+        new_prototype.turnOffTick = function()
+        {
+            createjs.Ticker.removeEventListener("tick", this.tickHandler);
+        }
 
-            new_prototype.turnOffTick = function()
-            {
-                createjs.Ticker.removeEventListener("tick", this.tickHandler);
-            }
-
-            // return Ball class.
-            return createjs.promote(Ball, "Shape");
+        // return Ball class.
+        return createjs.promote(Ball, "Shape");
     })();
 
     // Create Bar
@@ -282,22 +308,15 @@ window.onload = function()
     }
     stage.on("stagemouseup", onMouseUp);
 
-    // Set rendering configurations.
-    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
-    createjs.Ticker.setFPS(60);
-
     // Create ball.
-    var ball = new Ball(stage, 200, 650, BALL_RADIUS, INIT_VELOCITY, 0x4d5aaf);
+    var ball = new Ball(stage, 220, 650, BALL_RADIUS, INIT_VELOCITY, 0x4d5aaf);
     stage.addChild(ball);
 
     // Load images into imageBlockLayers.
     // Early index is top on the canvas.
     var imageBlockLayers = [];
     var imageLoadQueue = new createjs.LoadQueue(false);
-    var manifest = [
-        {'src' : '../../../Photos/431x500x9fd78229e1c319bfd05aeb91.jpg', 'id' : 'layer2'},
-        {'src' : 'img/rin.jpg', 'id' : 'layer1'}
-    ];
+    var manifest = [ {'src' : '../../../Photos/431x500x9fd78229e1c319bfd05aeb91.jpg', 'id' : 'layer2'}, {'src' : 'img/rin.jpg', 'id' : 'layer1'} ];
     imageLoadQueue.loadManifest(manifest, true);
     var onFileLoad = function(event)
     {
@@ -310,10 +329,6 @@ window.onload = function()
         var bitmap = new createjs.Bitmap(event.result);
         var bounds = bitmap.getBounds();
         var scale  = Math.min((BLOCK_AREA_SIZE.x / bounds.width), (BLOCK_AREA_SIZE.y / bounds.height));
-
-        // Horizontally centering image.
-        var scaledSizeX = bounds.width * scale;
-        var paddingX    = (scaledSizeX < BLOCK_AREA_SIZE.x) ? ((BLOCK_AREA_SIZE.x - scaledSizeX) / 2) : (0);
 
         // Create sprite sheet;
         var spBuilder     = new createjs.SpriteSheetBuilder();
@@ -337,6 +352,10 @@ window.onload = function()
             sprite.gotoAndStop(i);
             container.addChild(sprite);
         }
+
+        // Horizontally centering image.
+        var scaledSizeX = bounds.width * scale;
+        var paddingX    = (scaledSizeX < BLOCK_AREA_SIZE.x) ? ((BLOCK_AREA_SIZE.x - scaledSizeX) / 2) : (0);
         container.x = paddingX;
 
         // Insert container at bottom of stage.
