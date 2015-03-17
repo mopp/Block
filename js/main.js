@@ -15,6 +15,7 @@ window.onload = function()
             // Constructor
             function ImageBlockLayer(stage, bitmap, sizeX, sizeY, spriteCellContainer)
             {
+                this.stage = stage;
                 this.bitmap = bitmap;
                 this.visibleMatrix = new Array(sizeY);
                 for (var i = 0; i < sizeY; ++i) {
@@ -76,11 +77,13 @@ window.onload = function()
             }
             var new_prototype = createjs.extend(Ball, createjs.Shape);
 
-            new_prototype.collisionRectangle = function(positionX, positionY, sizeX, sizeY)
+            new_prototype.collisionRectangle = function(displayObject, positionX, positionY, sizeX, sizeY)
             {
                 var rectangleSize = new Victor(sizeX, sizeY);
                 var rectanglePos  = new Victor(positionX, positionY);
                 var r = this.radius;
+                var pt = displayObject.globalToLocal(this.position.x, this.position.y);
+                var ballPos = new Victor(pt.x, pt.y);
 
                 // Check ball includes rectangle corner.
                 var checker1 = function(v1, v2) {
@@ -124,20 +127,20 @@ window.onload = function()
                 var c3 = rectanglePos.clone().addY(rectangleSize);
                 var c4 = rectanglePos.clone().add(rectangleSize);
 
-                return (checker3([c1, c2, c3, c4], this.position));
+                return (checker3([c1, c2, c3, c4], ballPos));
 
                 return (
-                    checker2(c1, c2, this.position) ||
-                    checker2(c1, c3, this.position) ||
-                    checker2(c2, c4, this.position) ||
-                    checker2(c3, c4, this.position)
+                    checker2(c1, c2, ballPos) ||
+                    checker2(c1, c3, ballPos) ||
+                    checker2(c2, c4, ballPos) ||
+                    checker2(c3, c4, ballPos)
                 );
 
                 return (
-                    checker1(this.position, c1) ||
-                    checker1(this.position, c2) ||
-                    checker1(this.position, c3) ||
-                    checker1(this.position, c4)
+                    checker1(ballPos, c1) ||
+                    checker1(ballPos, c2) ||
+                    checker1(ballPos, c3) ||
+                    checker1(ballPos, c4)
                 );
             }
 
@@ -180,7 +183,7 @@ window.onload = function()
                                 }
                                 var cell = cellMatrix[i][j];
                                 var bounds = cell.getBounds();
-                                if (self.collisionRectangle(bounds.x, bounds.y, bounds.width, bounds.height)) {
+                                if (self.collisionRectangle(imageBlockLayer.spriteCellContainer, bounds.x, bounds.y, bounds.width, bounds.height)) {
                                     self.velocity.y *= -1;
                                     imageBlockLayer.invisibleCellAt(i, j);
                                     if (imageBlockLayer.isInvisibleAllCell() == true) {
@@ -228,7 +231,7 @@ window.onload = function()
     var imageBlockLayers = [];
     var imageLoadQueue = new createjs.LoadQueue(false);
     var manifest = [
-        {'src' : 'img/rin2.jpg', 'id' : 'layer2'},
+        {'src' : '../../../Photos/431x500x9fd78229e1c319bfd05aeb91.jpg', 'id' : 'layer2'},
         {'src' : 'img/rin.jpg', 'id' : 'layer1'}
     ];
     imageLoadQueue.loadManifest(manifest, true);
@@ -239,18 +242,18 @@ window.onload = function()
             return;
         }
 
-        var bitmap = new createjs.Bitmap(event.result);
-
         // Calculate scaling.
+        var bitmap = new createjs.Bitmap(event.result);
         var bounds = bitmap.getBounds();
-        var scaleX = BLOCK_AREA_SIZE.x / bounds.width;
-        var scaleY = BLOCK_AREA_SIZE.y / bounds.height;
-        var scale = Math.min(scaleX, scaleY);
+        var scale  = Math.min((BLOCK_AREA_SIZE.x / bounds.width), (BLOCK_AREA_SIZE.y / bounds.height));
 
-        var blockSize = new Victor(bounds.width / BLOCK_WIDTH_DEVIDE_NUM, bounds.height / BLOCK_HEIGHT_DEVIDE_NUM);
+        // Horizontally centering image.
+        var scaledSizeX = bounds.width * scale;
+        var paddingX    = (scaledSizeX < BLOCK_AREA_SIZE.x) ? ((BLOCK_AREA_SIZE.x - scaledSizeX) / 2) : (0);
 
         // Create sprite sheet;
-        var spBuilder = new createjs.SpriteSheetBuilder();
+        var spBuilder     = new createjs.SpriteSheetBuilder();
+        var blockSize     = new Victor(bounds.width / BLOCK_WIDTH_DEVIDE_NUM, bounds.height / BLOCK_HEIGHT_DEVIDE_NUM);
         var cropRectangle = new createjs.Rectangle(0, 0, blockSize.x, blockSize.y);
         for (var i = 0, j = 0; i < (BLOCK_WIDTH_DEVIDE_NUM * BLOCK_HEIGHT_DEVIDE_NUM); i++) {
             cropRectangle.x = (blockSize.x) * (i - j * BLOCK_WIDTH_DEVIDE_NUM);
@@ -263,19 +266,20 @@ window.onload = function()
         }
         var spriteSheet = spBuilder.build();
 
-        // Insert container at bottom of stage.
-        var container = stage.addChild(new createjs.Container());
-        for (var i = stage.numChildren; 0 < i; --i) {
-            stage.swapChildrenAt(i, i - 1);
-        }
-
         // Create each sprite
+        var container = new createjs.Container();
         for (var i = 0; i < (BLOCK_WIDTH_DEVIDE_NUM * BLOCK_HEIGHT_DEVIDE_NUM); i++) {
             var sprite = new createjs.Sprite(spriteSheet);
             sprite.gotoAndStop(i);
             container.addChild(sprite);
         }
-        var containerBounds = container.getBounds();
+        container.x = paddingX;
+
+        // Insert container at bottom of stage.
+        stage.addChild(container);
+        for (var i = stage.numChildren; 0 < i; --i) {
+            stage.swapChildrenAt(i, i - 1);
+        }
 
         imageBlockLayers.push(new ImageBlockLayer(stage, bitmap, BLOCK_WIDTH_DEVIDE_NUM, BLOCK_HEIGHT_DEVIDE_NUM, container));
     }
