@@ -59,6 +59,8 @@ window.onload = function()
 
     // Create ball class by inherit from Shape.
     const Ball = (function() {
+            const BALL_GRAVITY = 0.1;
+
             // Constructor
             function Ball(stage, x, y, radius, initVelocity, color)
             {
@@ -148,23 +150,32 @@ window.onload = function()
             {
                 var self = this;
                 return (function(event) {
-                        var x = self.position.x;
-                        var y = self.position.y;
-
-                        if ((self.STAGE_WIDTH < x) || (x <= 0)) {
-                            // Reverse X direction.
-                            self.velocity.x *= -1;
-                        }
-                        if ((self.STAGE_HEIGHT < y) || (y <= 0)) {
-                            // Reverse Y direction.
-                            self.velocity.y *= -1;
-                        }
-
                         // Move
                         self.position.add(self.velocity);
-                        self.syncPosition();
+
+                        // Check stage boundary.
+                        var x = self.position.x;
+                        var y = self.position.y;
+                        if (self.STAGE_WIDTH < x) {
+                            self.velocity.x *= -1;
+                            self.position.x = (self.STAGE_WIDTH - self.radius);
+                        } else if ((x - this.radius) <= 0) {
+                            self.velocity.x *= -1;
+                            self.position.x = self.radius;
+                        }
+
+                        if ((self.STAGE_HEIGHT - self.radius) <= y) {
+                            self.velocity.y *= -1;
+                            self.position.y = (self.STAGE_HEIGHT - self.radius);
+                        } else if ((y - self.radius) <= 0) {
+                            self.velocity.y *= -1;
+                            self.position.y = self.radius;
+                        }
+
+                        // self.velocity.y += BALL_GRAVITY;
 
                         // redraw.
+                        self.syncPosition();
                         self.stage.update();
 
                         if (BLOCK_AREA_END.y < y) {
@@ -223,7 +234,7 @@ window.onload = function()
     createjs.Ticker.setFPS(60);
 
     // Create ball.
-    var ball = new Ball(stage, 200, 600, BALL_RADIUS, INIT_VELOCITY, 0xAA00FF);
+    var ball = new Ball(stage, 200, 650, BALL_RADIUS, INIT_VELOCITY, 0xAA00FF);
     stage.addChild(ball);
 
     // Load images into imageBlockLayers.
