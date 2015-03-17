@@ -74,14 +74,15 @@ window.onload = function()
         function Ball(stage, x, y, radius, initVelocity, color)
         {
             this.Shape_constructor();
-            this.x = x;
-            this.y = y;
-            this.position = new Victor(x, y);
-            this.velocity = new Victor(initVelocity * Math.cos(Math.PI / 6), initVelocity);
-            this.stage = stage;
-            this.radius = radius;
-            this.color = color;
-            this.STAGE_WIDTH = stage.canvas.width;
+            this.x            = x;
+            this.y            = y;
+            this.position     = new Victor(x, y);
+            this.initVelocity = initVelocity;
+            this.velocity     = new Victor(initVelocity * Math.cos(Math.PI / 6), -initVelocity);
+            this.stage        = stage;
+            this.radius       = radius;
+            this.color        = color;
+            this.STAGE_WIDTH  = stage.canvas.width;
             this.STAGE_HEIGHT = stage.canvas.height;
 
             this.graphics.beginFill(createjs.Graphics.getRGB(color)).drawCircle(0, 0, this.radius);
@@ -178,20 +179,28 @@ window.onload = function()
                 if ((self.STAGE_WIDTH) < x) {
                     self.velocity.x *= -1;
                     self.position.x = (self.STAGE_WIDTH - self.radius);
-                } else if (x < 0) {
+                }
+
+                if (x < 0) {
                     self.velocity.x *= -1;
                     self.position.x = self.radius;
                 }
 
-                if ((self.STAGE_HEIGHT - self.radius) <= y) {
-                    self.velocity.y *= -1;
-                    self.position.y = (self.STAGE_HEIGHT - self.radius);
-                } else if ((y - self.radius) <= 0) {
+                if (self.STAGE_HEIGHT <= y) {
+                    self.y = self.STAGE_HEIGHT + self.radius * 2;
+                    self.stage.update();
+
+                    // Game over.
+                    onGameOver();
+                    return;
+                }
+
+                if ((y - self.radius) <= 0) {
                     self.velocity.y *= -1;
                     self.position.y = self.radius;
                 }
 
-                // self.velocity.y += BALL_GRAVITY;
+                self.velocity.y += BALL_GRAVITY;
 
                 // redraw.
                 self.syncPosition();
@@ -199,6 +208,7 @@ window.onload = function()
 
                 // Check Bar.
                 if (self.isCollisionBar() == true) {
+                    self.velocity.y = -self.initVelocity;
                     self.velocity.y *= -1;
                     return;
                 }
@@ -225,6 +235,10 @@ window.onload = function()
                             if (imageBlockLayer.isInvisibleAllCell() == true) {
                                 imageBlockLayer.destructor();
                                 imageBlockLayers.shift();
+
+                                if (imageBlockLayers.length == 1) {
+                                    onFinish();
+                                }
                             }
 
                             return;
@@ -378,4 +392,16 @@ window.onload = function()
         ball.turnOnTick();
     };
     imageLoadQueue.addEventListener('complete', onCompleteLoad);
+
+    var onGameOver = function()
+    {
+        ball.turnOffTick();
+        alert("Game Over !");
+    }
+
+    var onFinish = function()
+    {
+        ball.turnOffTick();
+        alert("Finish !");
+    }
 };
