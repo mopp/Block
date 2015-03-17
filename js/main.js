@@ -215,6 +215,14 @@ window.onload = function()
             return createjs.promote(Ball, "Shape");
     })();
 
+    // Set rendering configurations.
+    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
+    createjs.Ticker.setFPS(60);
+
+    // Create ball.
+    var ball = new Ball(stage, 200, 600, BALL_RADIUS, INIT_VELOCITY, 0xAA00FF);
+    stage.addChild(ball);
+
     // Load images into imageBlockLayers.
     // Early index is top on the canvas.
     var imageBlockLayers = [];
@@ -267,20 +275,19 @@ window.onload = function()
             sprite.gotoAndStop(i);
             container.addChild(sprite);
         }
+        var containerBounds = container.getBounds();
 
         imageBlockLayers.push(new ImageBlockLayer(stage, bitmap, BLOCK_WIDTH_DEVIDE_NUM, BLOCK_HEIGHT_DEVIDE_NUM, container));
     }
     imageLoadQueue.addEventListener('fileload', onFileLoad);
 
-    // Set rendering configurations.
-    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
-    createjs.Ticker.setFPS(60);
+    var onCompleteLoad = function()
+    {
+        stage.update();
+        console.log("Complete Image Load");
 
-    // Create ball.
-    var ball = new Ball(stage, 200, 600, BALL_RADIUS, INIT_VELOCITY, 0xAA00FF);
-    stage.addChild(ball);
-    stage.update();
-
-    // Start.
-    ball.turnOnTick();
+        // Start.
+        ball.turnOnTick();
+    };
+    imageLoadQueue.addEventListener('complete', onCompleteLoad);
 };
