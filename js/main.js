@@ -77,7 +77,7 @@ window.onload = function()
             this.x = x;
             this.y = y;
             this.position = new Victor(x, y);
-            this.velocity = new Victor(0, initVelocity);
+            this.velocity = new Victor(initVelocity * Math.cos(Math.PI / 6), initVelocity);
             this.stage = stage;
             this.radius = radius;
             this.color = color;
@@ -175,10 +175,10 @@ window.onload = function()
                 // Check stage boundary.
                 var x = self.position.x;
                 var y = self.position.y;
-                if (self.STAGE_WIDTH < x) {
+                if ((self.STAGE_WIDTH) < x) {
                     self.velocity.x *= -1;
                     self.position.x = (self.STAGE_WIDTH - self.radius);
-                } else if ((x - this.radius) <= 0) {
+                } else if (x < 0) {
                     self.velocity.x *= -1;
                     self.position.x = self.radius;
                 }
@@ -261,7 +261,7 @@ window.onload = function()
     bar.setBounds(0, 0, BAR_SIZE.x, BAR_SIZE.y);
     stage.addChild(bar);
     bar.x = (stage.canvas.width / 2) - (BAR_SIZE.x / 2);
-    bar.y = stage.canvas.height * 0.9;
+    bar.y = stage.canvas.height - BAR_SIZE.y * 4;
     var oldStageX = -1;
     var isMoveBar = false;
     var onMovingMouse = function(event)
