@@ -9,6 +9,7 @@ window.onload = function()
     const BLOCK_AREA_BEGIN        = new Victor(0, 0);
     const BLOCK_AREA_END          = new Victor(stage.canvas.width, stage.canvas.height * 0.6);
     const BLOCK_AREA_SIZE         = BLOCK_AREA_END.subtract(BLOCK_AREA_BEGIN);
+    const BAR_SIZE                = new Victor(80, 10);
 
     // Create image layer class.
     const ImageBlockLayer = (function() {
@@ -229,12 +230,64 @@ window.onload = function()
             return createjs.promote(Ball, "Shape");
     })();
 
+    // Create Bar
+    var bar = new createjs.Shape();
+    bar.graphics.beginFill("#d7003a").drawRect(0, 0, BAR_SIZE.x, BAR_SIZE.y);
+    bar.setBounds(0, 0, BAR_SIZE.x, BAR_SIZE.y);
+    stage.addChild(bar);
+    bar.x = (stage.canvas.width / 2) - (BAR_SIZE.x / 2);
+    bar.y = stage.canvas.height * 0.9;
+    var oldStageX = -1;
+    var isMoveBar = false;
+    var onMovingMouse = function(event)
+    {
+        if (isMoveBar == false) {
+            return;
+        }
+
+        // var x = event.stageX;
+        var x = event.clientX;
+
+        if (oldStageX == -1) {
+            oldStageX = x;
+            return;
+        }
+
+        var moveAmount = x - oldStageX;
+        if (7 < moveAmount) {
+            moveAmount = 7;
+        } else if (moveAmount < -7) {
+            moveAmount = -7;
+        }
+        bar.x += moveAmount;
+
+        if (bar.x < 0) {
+            bar.x = 0;
+        } else if (stage.canvas.width < (bar.x + BAR_SIZE.x)) {
+            bar.x = stage.canvas.width - BAR_SIZE.x;
+        }
+
+        oldStageX = x;
+    };
+    window.addEventListener("mousemove", onMovingMouse);
+    var onMouseDown = function()
+    {
+        isMoveBar = true;
+    }
+    stage.on("stagemousedown", onMouseDown);
+    var onMouseUp = function()
+    {
+        isMoveBar = false;
+        oldStageX = -1;
+    }
+    stage.on("stagemouseup", onMouseUp);
+
     // Set rendering configurations.
     createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
     createjs.Ticker.setFPS(60);
 
     // Create ball.
-    var ball = new Ball(stage, 200, 650, BALL_RADIUS, INIT_VELOCITY, 0xAA00FF);
+    var ball = new Ball(stage, 200, 650, BALL_RADIUS, INIT_VELOCITY, 0x4d5aaf);
     stage.addChild(ball);
 
     // Load images into imageBlockLayers.
