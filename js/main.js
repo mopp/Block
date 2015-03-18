@@ -182,7 +182,7 @@ window.onload = function()
             var rectLeftX  = rectanglePosition.x + rectangleSize.x * (1 / 4);
             var rectRightX = rectanglePosition.x + rectangleSize.x * (3 / 4);
             var rectAboveY = rectanglePosition.y + rectangleSize.y * (1 / 4);
-            var rectBelowY = rectanglePosition.y + rectangleSize.y * (3 / 4);
+            var rectBelowY = rectanglePosition.y + rectangleSize.y * (5 / 7);
 
             var v = this.initVelocity;
             if ((bx <= rectLeftX) && (by <= rectAboveY)) {
@@ -207,25 +207,26 @@ window.onload = function()
                 console.log("right below");
             } else if (((rectLeftX < bx) && (bx < rectRightX)) && (by <= rectAboveY)) {
                 // Collision center above.
-                vx = this.velocity.x;
+                vx = v;
                 vy = -v;
                 console.log("center above");
             } else if (((rectLeftX < bx) && (bx < rectRightX)) && (rectBelowY <= by)) {
                 // Collision center below.
-                vx = this.velocity.x;
-                vy = -v;
+                vx = v;
+                vy = v;
                 console.log("center below");
             } else if ((bx <= rectLeftX) && (((rectAboveY < by)) && (by < rectBelowY))) {
                 // Collision center left.
                 vx = -v;
-                vy = this.velocity.y;
+                vy = -v;
                 console.log("center left");
             } else if (((rectRightX <= bx) && (((rectAboveY < by)) && (by < rectBelowY)))) {
                 // Collision center right.
                 vx = v;
-                vy = this.velocity.y;
+                vy = -v;
                 console.log("center right");
             }
+            this.syncPosition();
 
             return new Victor(vx, vy);
         }
@@ -290,7 +291,7 @@ window.onload = function()
                             var cell = cellMatrix[i][j];
                             var bounds = cell.getBounds();
                             if (self.isCollisionBlock(imageBlockLayer.spriteCellContainer, bounds.x, bounds.y, bounds.width, bounds.height)) {
-                                self.velocity.y *= -1;
+                                self.velocity = self.getReflectVelocityWithRectangle(self.position, self.radius, new Victor(bounds.x, bounds.y), new Victor(bounds.width, bounds.height));
 
                                 imageBlockLayer.invisibleCellAt(i, j);
 
