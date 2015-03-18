@@ -3,13 +3,13 @@ window.onload = function()
     // Constants.
     const stage                   = new createjs.Stage("blockCanvas");
     const BALL_RADIUS             = 10;
-    const INIT_VELOCITY           = 8;
+    const INIT_VELOCITY           = 6;
     const BLOCK_WIDTH_DEVIDE_NUM  = 20;
     const BLOCK_HEIGHT_DEVIDE_NUM = 10;
     const BLOCK_AREA_BEGIN        = new Victor(0, 0);
-    const BLOCK_AREA_END          = new Victor(stage.canvas.width, stage.canvas.height * 0.7);
+    const BLOCK_AREA_END          = new Victor(stage.canvas.width, stage.canvas.height * 0.75);
     const BLOCK_AREA_SIZE         = BLOCK_AREA_END.subtract(BLOCK_AREA_BEGIN);
-    const BAR_SIZE                = new Victor(80, 10);
+    const BAR_SIZE                = new Victor(90, 20);
     console.log("Block area size", BLOCK_AREA_SIZE.toString());
 
     // Set rendering configurations.
@@ -68,7 +68,7 @@ window.onload = function()
 
     // Create ball class by inherit from Shape.
     const Ball = (function() {
-        const BALL_GRAVITY = 0.1;
+        const BALL_GRAVITY = 0.05;
 
         // Constructor
         function Ball(stage, x, y, radius, initVelocity, color)
@@ -78,16 +78,18 @@ window.onload = function()
             this.y            = y;
             this.position     = new Victor(x, y);
             this.initVelocity = initVelocity;
-            this.velocity     = new Victor(initVelocity * Math.cos(Math.PI / 6), -initVelocity);
+            this.velocity     = new Victor(0, -initVelocity);
             this.stage        = stage;
             this.radius       = radius;
             this.color        = color;
             this.STAGE_WIDTH  = stage.canvas.width;
             this.STAGE_HEIGHT = stage.canvas.height;
+            this.checkCounter = 0;
 
             this.graphics.beginFill(createjs.Graphics.getRGB(color)).drawCircle(0, 0, this.radius);
         }
         var new_prototype = createjs.extend(Ball, createjs.Shape);
+
 
         new_prototype.isCollisionRectangle = function(ballPosition, r, rectanglePosition, rectangleSize)
         {
@@ -155,98 +157,159 @@ window.onload = function()
             return (checker3(corners, ballPosition) || checker2(corners, ballPosition) || checker1(ballPosition, corners));
         }
 
+
         new_prototype.isCollisionBlock = function(blockContainer, positionX, positionY, sizeX, sizeY)
         {
             var pt = blockContainer.globalToLocal(this.position.x, this.position.y);
             return this.isCollisionRectangle(new Victor(pt.x, pt.y), this.radius, new Victor(positionX, positionY), new Victor(sizeX, sizeY));
         }
 
+
         new_prototype.isCollisionBar = function()
         {
             return this.isCollisionRectangle(this.position, this.radius, new Victor(bar.x, bar.y), BAR_SIZE);
         }
 
+
+        new_prototype.getReflectVelocityWithRectangle = function(ballPosition, r, rectanglePosition, rectangleSize)
+        {
+            var vx = 0;
+            var vy = 0;
+            var bx = ballPosition.x + r;
+            var by = ballPosition.y + r;
+
+            // Each boundary.
+            var rectLeftX  = rectanglePosition.x + rectangleSize.x * (1 / 4);
+            var rectRightX = rectanglePosition.x + rectangleSize.x * (3 / 4);
+            var rectAboveY = rectanglePosition.y + rectangleSize.y * (1 / 4);
+            var rectBelowY = rectanglePosition.y + rectangleSize.y * (3 / 4);
+
+            var v = this.initVelocity;
+            if ((bx <= rectLeftX) && (by <= rectAboveY)) {
+                // Collision left above.
+                vx = -v;
+                vy = -v;
+                console.log("left above");
+            } else if ((rectRightX <= bx) && (by <= rectAboveY)) {
+                // Collision right above.
+                vx = v;
+                vy = -v;
+                console.log("right above");
+            } else if ((bx <= rectLeftX) && (rectBelowY <= by)) {
+                // Collision left below.
+                vx = -v;
+                vy = v;
+                console.log("left below");
+            } else if ((rectRightX <= bx) && (rectBelowY <= by)) {
+                // Collision right below.
+                vx = v;
+                vy = v;
+                console.log("right below");
+            } else if (((rectLeftX < bx) && (bx < rectRightX)) && (by <= rectAboveY)) {
+                // Collision center above.
+                vx = this.velocity.x;
+                vy = -v;
+                console.log("center above");
+            } else if (((rectLeftX < bx) && (bx < rectRightX)) && (rectBelowY <= by)) {
+                // Collision center below.
+                vx = this.velocity.x;
+                vy = -v;
+                console.log("center below");
+            } else if ((bx <= rectLeftX) && (((rectAboveY < by)) && (by < rectBelowY))) {
+                // Collision center left.
+                vx = -v;
+                vy = this.velocity.y;
+                console.log("center left");
+            } else if (((rectRightX <= bx) && (((rectAboveY < by)) && (by < rectBelowY)))) {
+                // Collision center right.
+                vx = v;
+                vy = this.velocity.y;
+                console.log("center right");
+            }
+
+            return new Victor(vx, vy);
+        }
+
+
         new_prototype.onTick = function(event)
         {
             var self = this;
             return (function(event) {
-                // Move
-                self.position.add(self.velocity);
+                    // Move
+                    self.position.add(self.velocity);
 
-                // Check stage boundary.
-                var x = self.position.x;
-                var y = self.position.y;
-                if ((self.STAGE_WIDTH) < x) {
-                    self.velocity.x *= -1;
-                    self.position.x = (self.STAGE_WIDTH - self.radius);
-                }
+                    // Check stage boundary.
+                    var x = self.position.x;
+                    var y = self.position.y;
+                    if ((self.STAGE_WIDTH) < x) {
+                        self.velocity.x *= -1;
+                        self.position.x = (self.STAGE_WIDTH - self.radius);
+                    }
 
-                if (x < 0) {
-                    self.velocity.x *= -1;
-                    self.position.x = self.radius;
-                }
+                    if (x < 0) {
+                        self.velocity.x *= -1;
+                        self.position.x = self.radius;
+                    }
 
-                if (self.STAGE_HEIGHT <= y) {
-                    self.y = self.STAGE_HEIGHT + self.radius * 2;
+                    if (self.STAGE_HEIGHT <= y) {
+                        self.y = self.STAGE_HEIGHT + self.radius * 2;
+                        self.stage.update();
+
+                        // Game over.
+                        onGameOver();
+                        return;
+                    }
+
+                    if ((y - self.radius) <= 0) {
+                        self.velocity.y *= -1;
+                        self.position.y = self.radius;
+                    }
+
+                    // redraw.
+                    self.syncPosition();
                     self.stage.update();
 
-                    // Game over.
-                    onGameOver();
-                    return;
-                }
+                    // Check Bar.
+                    if (self.isCollisionBar() == true) {
+                        self.velocity = self.getReflectVelocityWithRectangle(self.position, self.radius, new Victor(bar.x, bar.y), BAR_SIZE);
+                        return;
+                    }
 
-                if ((y - self.radius) <= 0) {
-                    self.velocity.y *= -1;
-                    self.position.y = self.radius;
-                }
-
-                self.velocity.y += BALL_GRAVITY;
-
-                // redraw.
-                self.syncPosition();
-                self.stage.update();
-
-                // Check Bar.
-                if (self.isCollisionBar() == true) {
-                    self.velocity.y = -self.initVelocity;
-                    console.log("bar");
-                    return;
-                }
-
-                // Check Block
-                x = self.position.x;
-                y = self.position.y;
-                var imageBlockLayer = imageBlockLayers[0];
-                var cellMatrix = imageBlockLayer.spriteCellMatrix;
-                var visibleMatrix = imageBlockLayer.visibleMatrix;
-                for (var i = 0; i < cellMatrix.length; i++) {
-                    for (var j = 0; j < cellMatrix[i].length; ++j) {
-                        if (visibleMatrix[i][j] == false) {
-                            continue;
-                        }
-
-                        var cell = cellMatrix[i][j];
-                        var bounds = cell.getBounds();
-                        if (self.isCollisionBlock(imageBlockLayer.spriteCellContainer, bounds.x, bounds.y, bounds.width, bounds.height)) {
-                            self.velocity.y *= -1;
-
-                            imageBlockLayer.invisibleCellAt(i, j);
-
-                            if (imageBlockLayer.isInvisibleAllCell() == true) {
-                                imageBlockLayer.destructor();
-                                imageBlockLayers.shift();
-
-                                if (imageBlockLayers.length == 1) {
-                                    onFinish();
-                                }
+                    // Check Block
+                    x = self.position.x;
+                    y = self.position.y;
+                    var imageBlockLayer = imageBlockLayers[0];
+                    var cellMatrix = imageBlockLayer.spriteCellMatrix;
+                    var visibleMatrix = imageBlockLayer.visibleMatrix;
+                    for (var i = 0; i < cellMatrix.length; i++) {
+                        for (var j = 0; j < cellMatrix[i].length; ++j) {
+                            if (visibleMatrix[i][j] == false) {
+                                continue;
                             }
 
-                            return;
+                            var cell = cellMatrix[i][j];
+                            var bounds = cell.getBounds();
+                            if (self.isCollisionBlock(imageBlockLayer.spriteCellContainer, bounds.x, bounds.y, bounds.width, bounds.height)) {
+                                self.velocity.y *= -1;
+
+                                imageBlockLayer.invisibleCellAt(i, j);
+
+                                if (imageBlockLayer.isInvisibleAllCell() == true) {
+                                    imageBlockLayer.destructor();
+                                    imageBlockLayers.shift();
+
+                                    if (imageBlockLayers.length == 1) {
+                                        onFinish();
+                                    }
+                                }
+
+                                return;
+                            }
                         }
                     }
-                }
             });
         }
+
 
         new_prototype.syncPosition = function()
         {
@@ -254,11 +317,13 @@ window.onload = function()
             this.y = this.position.y;
         }
 
+
         new_prototype.turnOnTick = function()
         {
             this.tickHandler = this.onTick();
             createjs.Ticker.addEventListener("tick", this.tickHandler);
         }
+
 
         new_prototype.turnOffTick = function()
         {
@@ -275,7 +340,7 @@ window.onload = function()
     bar.setBounds(0, 0, BAR_SIZE.x, BAR_SIZE.y);
     stage.addChild(bar);
     bar.x = (stage.canvas.width / 2) - (BAR_SIZE.x / 2);
-    bar.y = stage.canvas.height - BAR_SIZE.y * 4;
+    bar.y = stage.canvas.height - BAR_SIZE.y * 2;
     var oldStageX = -1;
     var isMoveBar = false;
     var onMovingMouse = function(event)
@@ -349,6 +414,7 @@ window.onload = function()
         var spBuilder     = new createjs.SpriteSheetBuilder();
         var blockSize     = new Victor(bounds.width / BLOCK_WIDTH_DEVIDE_NUM, bounds.height / BLOCK_HEIGHT_DEVIDE_NUM);
         var cropRectangle = new createjs.Rectangle(0, 0, blockSize.x, blockSize.y);
+
         for (var i = 0, j = 0; i < (BLOCK_WIDTH_DEVIDE_NUM * BLOCK_HEIGHT_DEVIDE_NUM); i++) {
             cropRectangle.x = (blockSize.x) * (i - j * BLOCK_WIDTH_DEVIDE_NUM);
             cropRectangle.y = (blockSize.y) * j;
@@ -445,7 +511,6 @@ window.onload = function()
         stage.addChild(text);
 
         stage.update();
-
     }
 
     var onFinish = function()
