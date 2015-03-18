@@ -385,18 +385,45 @@ window.onload = function()
 
     var onCompleteLoad = function()
     {
-        stage.update();
         console.log("Complete Image Load");
-
-        // Start.
-        ball.turnOnTick();
+        onStart();
     };
     imageLoadQueue.addEventListener('complete', onCompleteLoad);
+
+    var onStart = function()
+    {
+        // Start dialog.
+        var text = new createjs.Text("Click To Start !", "28px Arial", "#ABC");
+        var bounds = text.getBounds();
+        text.x = (stage.canvas.width - bounds.width) / 2;
+        text.y = stage.canvas.height * 0.85;
+
+        // Screen cover
+        var screenBlur = new createjs.Shape();
+        screenBlur.graphics.beginFill("#111").drawRect(0, 0, stage.canvas.width, stage.canvas.height);
+        screenBlur.alpha = 0.8;
+        var onClickScreen = function(event) {
+            stage.removeChild(screenBlur);
+            stage.removeChild(text);
+
+            // Start.
+            ball.turnOnTick();
+        }
+        screenBlur.on("click", onClickScreen, null, true);
+
+        stage.addChild(screenBlur);
+        stage.addChild(text);
+
+        stage.update();
+
+        console.log("Ready");
+    }
 
     var onGameOver = function()
     {
         ball.turnOffTick();
         alert("Game Over !");
+        location.reload();
     }
 
     var onFinish = function()
