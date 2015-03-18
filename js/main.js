@@ -422,13 +422,42 @@ window.onload = function()
     var onGameOver = function()
     {
         ball.turnOffTick();
-        alert("Game Over !");
-        location.reload();
+
+        // GameOver dialog.
+        var text = new createjs.Text("Game Over !\nClick To Restart", "28px Arial", "#000");
+        var bounds = text.getBounds();
+        text.x = (stage.canvas.width - bounds.width) / 2;
+        text.y = stage.canvas.height * 0.85;
+
+        // Screen cover
+        var screenCover = new createjs.Shape();
+        screenCover.graphics.beginFill("#111").drawRect(0, 0, stage.canvas.width, stage.canvas.height);
+        screenCover.alpha = 0.01;
+        var onClickScreen = function(event) {
+            stage.removeChild(screenCover);
+            stage.removeChild(text);
+
+            location.reload();
+        }
+        screenCover.on("click", onClickScreen, null, true);
+
+        stage.addChild(screenCover);
+        stage.addChild(text);
+
+        stage.update();
+
     }
 
     var onFinish = function()
     {
         ball.turnOffTick();
-        alert("Finish !");
+
+        // GameOver dialog.
+        var text = new createjs.Text("Clear", "28px Arial", "#000");
+        var bounds = text.getBounds();
+        text.x = (stage.canvas.width - bounds.width) / 2;
+        text.y = stage.canvas.height * 0.85;
+
+        stage.addChild(text);
     }
 };
