@@ -1,15 +1,15 @@
 body {
-    background:#aaa;
+    background:#fffafa;
     color:#000;
-    /* margin:20px auto; */
-    /* text-align:center; */
-    /* line-height:1.5em; */
-    /* width:960px; */
 }
 
 
 div#canvasFrame {
-    background:#c0c6c3;
+    background:#faf0e6;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
     width: 500px;
-    height: 800px;
 }
